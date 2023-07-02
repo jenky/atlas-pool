@@ -23,6 +23,7 @@
         "php": "^8.1"
     },
     "require-dev": {
+        "clue/mq-react": "^1.5",
         "friendsofphp/php-cs-fixer": "^3.15",
         "guzzlehttp/guzzle": "^7.5",
         "jenky/atlas": "1.x-dev",

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Jenky\Atlas\Pool\React;
 
+use Clue\React\Mq\Queue;
 use Jenky\Atlas\Contracts\ConnectorInterface;
 use Jenky\Atlas\Pool\Exceptions\UnsupportedException;
 use Jenky\Atlas\Pool\PoolInterface;
@@ -33,12 +34,30 @@ final class Pool implements PoolInterface
 
     public function send(iterable $requests): array
     {
-        $promises = static function (ConnectorInterface $connector) use ($requests) {
+        // $promises = static function (ConnectorInterface $connector) use ($requests) {
+        //     foreach ($requests as $key => $request) {
+        //         if ($request instanceof Request) {
+        //             yield $key => Async\async(static fn (): Response => $connector->send($request));
+        //         } elseif (is_callable($request)) {
+        //             yield $key => Async\async(static fn (): Response => $request($connector));
+        //         } else {
+        //             throw new \InvalidArgumentException('Each value of the iterator must be a Jenky\Atlas\Request or a \Closure that returns a Jenky\Atlas\Response object.');
+        //         }
+        //     }
+        // };
+
+        // return Async\await(Promise\all(Async\parallel($promises($this->connector)))); //@phpstan-ignore-line
+
+        error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+        $queue = new Queue($this->concurrency, null, fn ($cb) => Async\async($cb)());
+
+        $promises = static function (ConnectorInterface $connector) use ($requests, $queue) {
             foreach ($requests as $key => $request) {
                 if ($request instanceof Request) {
-                    yield $key => Async\async(fn (): Response => $connector->send($request));
+                    yield $key => static fn () => $queue(static fn (): Response => $connector->send($request));
                 } elseif (is_callable($request)) {
-                    yield $key => Async\async(fn (): Response => $request($connector));
+                    yield $key => static fn () => $queue(static fn (): Response => $request($connector));
                 } else {
                     throw new \InvalidArgumentException('Each value of the iterator must be a Jenky\Atlas\Request or a \Closure that returns a Jenky\Atlas\Response object.');
                 }
