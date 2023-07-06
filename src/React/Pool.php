@@ -34,21 +34,10 @@ final class Pool implements PoolInterface
 
     public function send(iterable $requests): array
     {
-        // $promises = static function (ConnectorInterface $connector) use ($requests) {
-        //     foreach ($requests as $key => $request) {
-        //         if ($request instanceof Request) {
-        //             yield $key => Async\async(static fn (): Response => $connector->send($request));
-        //         } elseif (is_callable($request)) {
-        //             yield $key => Async\async(static fn (): Response => $request($connector));
-        //         } else {
-        //             throw new \InvalidArgumentException('Each value of the iterator must be a Jenky\Atlas\Request or a \Closure that returns a Jenky\Atlas\Response object.');
-        //         }
-        //     }
-        // };
-
-        // return Async\await(Promise\all(Async\parallel($promises($this->connector)))); //@phpstan-ignore-line
-
-        error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+        if (\PHP_VERSION_ID >= 80200) {
+            // Temporary solution until https://github.com/clue/reactphp-mq/pull/36 release
+            error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+        }
 
         $queue = new Queue($this->concurrency, null, fn ($cb) => Async\async($cb)());
 
